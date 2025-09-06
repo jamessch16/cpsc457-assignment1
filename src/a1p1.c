@@ -3,18 +3,26 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+const int NUM_ROWS = 100;
+
 int main() {
     
-    pid_t child_processes[100];
+    pid_t child_processes[NUM_ROWS];
     pid_t pid = -1;
 
     // create child processes
-    for (int i = 0; i < 100 && pid != 0; i++) {
+    for (int i = 0; i < NUM_ROWS && pid != 0; i++) {
 
         pid = fork();
 
-        if (pid > 0) child_processes[i] = pid;
-        else if (pid < 0) {
+        // TODO May have to redo structure. wait(NULL) until child done then create next t
+
+        if (pid > 0) {
+            child_processes[i] = pid;
+            printf("Child %d (PID %d): Searching row %d\n", i, pid, i);
+        }
+
+        if (pid < 0) {
             i--;
             wait(10);
         }
