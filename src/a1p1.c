@@ -6,35 +6,39 @@
 
 const int NUM_ROWS = 100;
 
-bool created_child_processes(pid_t child_processes[]) {
+int created_child_processes(pid_t child_processes[]) {
     /*
     Creates 100 child processes to search the file rows.
     
     Returns:
-    true: if process exits function as the parent
-    false: if process exits function as the child
+    -1:                             if process exits function as the parent
+    row for the process to search:  if process exits function as the child
     */
 
     pid_t pid = -1;
+    int counter = 0;
 
     // create child processes. loop exits early if process is a child
-    for (int i = 0; i < NUM_ROWS && pid != 0; i++) {
+    while (counter < NUM_ROWS && pid != 0) {
 
         pid = fork();
 
         if (pid > 0) {
-            child_processes[i] = pid;
-            printf("Child %d (PID %d): Searching row %d\n", i, pid, i);
+            child_processes[counter] = pid;
+            printf("Child %d (PID %d): Searching row %d\n", counter, pid, counter);
         }
 
+        // wait if process creating failed and reset counter
         if (pid < 0) {
-            i--;
+            counter--;
             wait(10);
         }
+
+        counter++;
     }
 
-    if (pid == 0) return false;
-    else return 1;
+    if (pid == 0) return counter;
+    else return -1;
 }
 
 void search_row(int row_num) {
