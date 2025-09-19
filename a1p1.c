@@ -30,7 +30,6 @@ int create_child_processes() {
         pid = fork();
 
         if (pid > 0) {
-            child_processes[counter] = pid;
             printf("Child %d (PID %d): Searching row %d\n", counter, pid, counter);
             counter++;
         }
@@ -70,7 +69,7 @@ int search_row(int row_num) {
 
 int main() {
     
-    pid_t pid = -1;
+    int pid = -1;
     int process_row = -1;
     int row_num = -1;
     int column_num = -1;
@@ -78,7 +77,7 @@ int main() {
     int counter = 0;
     bool target_found = false;
 
-    process_row = create_child_processes(child_processes);
+    process_row = create_child_processes();
 
     // process is the parent
     if (process_row == -1) {
@@ -88,6 +87,11 @@ int main() {
             pid = wait(&wait_status);
             counter++;
         } while (WEXITSTATUS(wait_status) == TARGET_NOT_FOUND && counter < NUM_ROWS);     // TODO HANDLE NO TARGET IN INPUT
+
+        if (counter == NUM_ROWS && WEXITSTATUS(wait_status) == TARGET_NOT_FOUND) {
+            fprintf(stderr, "ERROR: No target in file");
+            return 1;
+        }
 
         // find the target in column
         row_num = wait_status;
@@ -100,8 +104,8 @@ int main() {
     else {
         target_found = search_row(process_row);
 
-        if (target_found == -1)     exit(INT_MAX);           // return full bitmask to indicate failure
-        else                        exit(TARGET_NOT_FOUND);  // return row number if success
+        if (target_found == -1)  exit(TARGET_NOT_FOUND);
+        else  exit(process_row);  // return row number if success
     }
 
     return 0;
