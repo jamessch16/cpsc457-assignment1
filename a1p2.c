@@ -39,6 +39,10 @@ void search_primes_in_range(int lower_bound, int upper_bound, int *num_ptr) {
     for (int num = lower_bound; num <= upper_bound; num++) {
         if (is_prime(num)) {
             *num_ptr = num;
+
+            //printf("\n%d is prime\n%d Stored to %p\n", num, *(num_ptr ), (void *) num_ptr);
+            //printf("%d stored last time: address %p\n\n", *(num_ptr - 1), (void *) (num_ptr - 1) );
+
             num_ptr++;
             primes_found++;
         }
@@ -65,6 +69,10 @@ void report_primes(int *num_ptr, int size, int n_children, int partition_size) {
             // move to nex process if reach end of row character
             if ( *(num_ptr + i) == -1) {
                 break;
+            }
+
+            if ( *(num_ptr + i) == 0) {
+                continue;
             }
 
             printf("%d ", *(num_ptr + i));
@@ -133,13 +141,11 @@ int main(int argc, char *argv[]) {
 
             // adjust search bounds for next child and its starting point in memory
             if ((counter < N_CHILDREN - 2) || remainder_size == 0)  {
-                printf("counter%d\n", counter);  
                 upper_bound += partition_size;
                 lower_bound += partition_size;
                 num_ptr += partition_size; 
             }
             else if (counter == N_CHILDREN - 2 && remainder_size > 0)  { 
-                printf("set to global\n"); 
                 upper_bound = GLOBAL_UPPER_BOUND;
                 lower_bound += partition_size;
                 num_ptr += partition_size;
@@ -157,7 +163,7 @@ int main(int argc, char *argv[]) {
         while (wait(NULL) != -1) {}
 
         printf("\nParent: All children finished. Primes found:");
-        report_primes(num_ptr, MEM_SIZE, N_CHILDREN, partition_size);
+        report_primes((int *) SHM_PTR, MEM_SIZE, N_CHILDREN, partition_size);
         shmdt(SHM_PTR);
     }
     // is child
