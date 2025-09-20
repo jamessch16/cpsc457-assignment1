@@ -92,6 +92,8 @@ int main() {
             row_num = WEXITSTATUS(wait_status);
             column_num = search_row(row_num);
 
+            // TODO replace with while (pid != -1 and test)
+
             counter++;
         
         } while (WEXITSTATUS(wait_status) == TARGET_NOT_FOUND && counter < NUM_ROWS + 1);
