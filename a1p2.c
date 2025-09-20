@@ -4,18 +4,16 @@
 #include <sys/wait.h>
 #include <sys/shm.h>
 
-// int spawn_children(int n) {
-//     /*
-//     Creates 100 child processes to search the file rows.
-    
-//     Returns:
-//     -1:                             if process exits function as the parent
-//     row for the process to search:  if process exits function as the child
-//     */
 
-//     return -1;
-// }
 
+/*
+Notes on partitioning
+
+Numbers to check = upper - lower + 1
+
+if (to_check % buckets == 0) partition_size =  
+
+*/
 
 int is_prime(int num) {
     /*
@@ -37,8 +35,8 @@ int is_prime(int num) {
 
 int main() {
     
-    int lower_bound = -1;
-    int upper_bound = -1;
+    int global_lower_bound = -1;
+    int global_upper_bound = -1;
     int n_children = -1;
 
     scanf("%d %d %d", lower_bound, upper_bound, n);
@@ -49,19 +47,45 @@ int main() {
     int pid = -1;
     int counter = 0;
 
+    int numbers_to_search = global_upper_bound - global_lower_bound + 1;
+    int partition_size = -1;
+    int remainder_size = -1;
+
+    // calculate partition sizes
+    if (numbers_to_search < n_children) {  // there are more child processes than numbers to search
+        partition_size = 1;
+        remainder_size = n_children - numbers_to_search;  // here remainder size is excess processes
+    }
+    else if (numbers_to_search % n_children == 0) {   // buckets divide evenly
+        partition_size = numbers_to_search / n_children;
+        remainder_size = 0;
+    }
+    else {  // buckets do not divide evenly
+        partition_size = numbers_to_search / (n_children - 1);  // one process is set aside to check remainder numbers
+        remainder_size = numbers_to_search %
+    }
+
+    int lower_bound = global_lower_bound;
+    int upper_bound = lower_bound + partition_size - 1;
+
+    
+
     // create child processes. loop exits early if process is a child
-    while (counter < NUM_ROWS && pid != 0) {
+    while (counter < n_children && pid != 0) {
 
         pid = fork();
 
         if (pid > 0) {
             printf("Child PID %d checking range [%d, %d]\n", pid, INT_MAX, INT_MIN);
             counter++;
+
+            lower_bound += partition_size;
+            upper_bound += partition_size;
         }
     }
 
 
-    
+    // TODO CASE: MORE PROCESSES THAN NUMBERS TO SEARCH
 
 
 
