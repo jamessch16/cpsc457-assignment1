@@ -35,14 +35,12 @@ int is_prime(int num) {
 
 int main() {
     
+    // input and numerical computation
     int global_lower_bound = -1;
     int global_upper_bound = -1;
     int n_children = -1;
 
     scanf("%d %d %d", lower_bound, upper_bound, n);
-
-    int shmid = shmget(IPC_PRIVATE, SIZE, IPC_CREAT | 0666);  // NOTE FOR FUTURE REFERENCE: IPC_PRIVATE is a flag to create a new segment. Don't use if unrelated processes need to share memory
-    int *shm_ptr = (int *) shmat(shmid, NULL, 0);
 
     int pid = -1;
     int counter = 0;
@@ -62,27 +60,58 @@ int main() {
     }
     else {  // buckets do not divide evenly
         partition_size = numbers_to_search / (n_children - 1);  // one process is set aside to check remainder numbers
-        remainder_size = numbers_to_search %
+        remainder_size = numbers_to_search % n_children;
     }
 
     int lower_bound = global_lower_bound;
     int upper_bound = lower_bound + partition_size - 1;
 
-    
+
+
+    // setup shared memory
+    int shmid = shmget(IPC_PRIVATE, sizeof(int) * numbers_to_search, IPC_CREAT | 0666);  // NOTE FOR FUTURE REFERENCE: IPC_PRIVATE is a flag to create a new segment. Don't use if unrelated processes need to share memory
+    int *shm_ptr = (int *) shmat(shmid, NULL, 0);
 
     // create child processes. loop exits early if process is a child
     while (counter < n_children && pid != 0) {
 
         pid = fork();
 
+        // process is the parent
         if (pid > 0) {
-            printf("Child PID %d checking range [%d, %d]\n", pid, INT_MAX, INT_MIN);
-            counter++;
+            printf("Child PID %d checking range [%d, %d]\n", pid, lower_bound, upper_bound);
 
+            // adjust search bounds for next child
             lower_bound += partition_size;
-            upper_bound += partition_size;
+
+            if ((counter < n_children - 1) || remainder_size == 0)  upper_bound += partition_size;
+            else if (counter == n_children - 1)                     upper_bound = global_upper_bound;
+
+            else {
+                fprintf(stderr, "ERROR: Should never happen, exceed bounds of child process creation");
+                exit(1);
+            }
+            
+            counter++;
         }
     }
+
+
+    // is parent
+    if (pid > 0) {
+
+    }
+    // is child
+    else if (pid == 0) {
+
+    } 
+
+    else {
+        fprintf(stderr, "ERROR: Should never happen, exit process creation with negative value from fork");
+        exit(1);
+    }
+
+
 
 
     // TODO CASE: MORE PROCESSES THAN NUMBERS TO SEARCH
