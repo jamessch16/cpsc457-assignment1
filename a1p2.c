@@ -33,17 +33,21 @@ void search_primes_in_range(int lower_bound, int upper_bound, int *num_ptr) {
     num_ptr: an int pointer pointing to a block in memory where any found prime numbers should be stored
     */
 
+    int primes_found = 0;
+
     for (int num = lower_bound; num <= upper_bound; num++) {
         if (is_prime(num)) {
             *num_ptr = num;
             num_ptr++;
+            primes_found++;
         }
     }
 
-    // TODO Write -1 at end as null, also check to see if safe to do so. Could just have it as an end early marker.
+    // Set a 'null char' of -1 to mark the end of prime numbers in this section if there is room left in the array
+    if (primes_found < upper_bound - lower_bound + 1)  *num_ptr = -1;
 }
 
-void report_primes(int *num_ptr, int size, int offset) {
+void report_primes(int *num_ptr, int size, int n_children, int partition_size) {
     /*
     Print all stored prime numbers in the block in memory pointed to by num_ptr
 
@@ -53,6 +57,20 @@ void report_primes(int *num_ptr, int size, int offset) {
     offset: offset of each array dedicated to a child
     */
 
+    for (int child = 0; child < n_children; child++) {
+
+        for (int i = 0; i < partition_size; i++) {
+
+            // move to nex process if reach end of row character
+            if ( *(num_ptr + i) == -1) {
+                break;
+            }
+
+            printf("%d ", *(num_ptr + i));
+        }
+        
+        num_ptr += partition_size;
+    }
 }
 
 int main(int argc, char *argv[]) {
@@ -67,6 +85,10 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
+    if (GLOBAL_LOWER_BOUND > GLOBAL_UPPER_BOUND) {
+        fprintf(stderr, "ERROR: invalid input. Only lower bound must be greater than or equal to upper bound");
+        exit(1);
+    }
 
     int pid = -1;
     int counter = 0;
@@ -74,18 +96,17 @@ int main(int argc, char *argv[]) {
     int numbers_to_search = GLOBAL_UPPER_BOUND - GLOBAL_LOWER_BOUND + 1;
     int partition_size = -1;
     int remainder_size = -1;
-    const int MEM_SIZE = sizeof(int) * numbers_to_search;
 
     // calculate partition sizes
     if (numbers_to_search < N_CHILDREN) {  // there are more child processes than numbers to search
         partition_size = 1;
         remainder_size = N_CHILDREN - numbers_to_search;  // here remainder size is excess processes
     }
-    else if (numbers_to_search % N_CHILDREN == 0) {   // buckets divide evenly
+    else if (numbers_to_search % N_CHILDREN == 0) {   // partitions divide search space evenly
         partition_size = numbers_to_search / N_CHILDREN;
         remainder_size = 0;
     }
-    else {  // buckets do not divide evenly
+    else {  // partitions do not divide evenly
         partition_size = numbers_to_search / (N_CHILDREN - 1);  // one process is set aside to check remainder numbers
         remainder_size = numbers_to_search % N_CHILDREN;
     }
@@ -95,6 +116,7 @@ int main(int argc, char *argv[]) {
 
 
     // setup shared memory
+    const int MEM_SIZE = sizeof(int) * partition_size * N_CHILDREN;
     int shmid = shmget(IPC_PRIVATE, MEM_SIZE, IPC_CREAT | 0666);  // NOTE FOR FUTURE REFERENCE: IPC_PRIVATE is a flag to create a new segment. Don't use if unrelated processes need to share memory
     const int *SHM_PTR = (int *) shmat(shmid, NULL, 0);   
     int *num_ptr = SHM_PTR;
@@ -112,9 +134,8 @@ int main(int argc, char *argv[]) {
             lower_bound += partition_size;
             num_ptr += partition_size;
 
-            if ((counter < N_CHILDREN - 1) || remainder_size == 0)  upper_bound += partition_size;
-            else if (counter == N_CHILDREN - 1)                     upper_bound = GLOBAL_UPPER_BOUND;
-
+            if ((counter < N_CHILDREN - 1) || remainder_size == 0)      upper_bound += partition_size;
+            else if (counter == N_CHILDREN - 1 && remainder_size > 0)   upper_bound = GLOBAL_UPPER_BOUND;
             else {
                 fprintf(stderr, "ERROR: Should never happen, exceed bounds of child process creation");
                 exit(1);
@@ -132,8 +153,8 @@ int main(int argc, char *argv[]) {
         while (wait(NULL) != -1) {}
 
         printf("\nParent: All children finished. Primes found:");
-        report_primes(num_ptr, MEM_SIZE, partition_size);
-
+        report_primes(num_ptr, MEM_SIZE, N_CHILDREN, partition_size);
+        shmdt(SHM_PTR);
     }
     // is child
     else if (pid == 0) {
