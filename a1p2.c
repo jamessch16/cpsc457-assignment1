@@ -162,7 +162,7 @@ int main(int argc, char *argv[]) {
         // wait for all children to finish. when all children are terminated, it will return -1 and the loop whill end
         while (wait(NULL) != -1) {}
 
-        printf("\nParent: All children finished. Primes found:");
+        printf("\nParent: All children finished. Primes found: ");
         report_primes((int *) SHM_PTR, MEM_SIZE, N_CHILDREN, partition_size);
         shmdt(SHM_PTR);
     }
