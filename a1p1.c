@@ -9,9 +9,6 @@ const int NUM_ROWS = 100;
 const int NUM_COLUMNS = 1000;
 const int TARGET_NOT_FOUND = 200;
 
-// TODO TODO What if it is found before the all processes are spawned
-
-
 int create_child_processes() {
     /*
     Creates 100 child processes to search the file rows.
@@ -51,17 +48,23 @@ int search_row(int row_num) {
     -1 if no target found
     */
 
-    char current;
+    int current = 0;
 
-    fseek(stdin, 2 * row_num * NUM_COLUMNS, SEEK_CUR);
+    fseek(stdin, 2 * row_num * NUM_COLUMNS, SEEK_SET);
 
     for (int i = 0; i < NUM_COLUMNS; i++) {
-
-        current = getc(stdin);
-
-        if (current == '1') return i;
+        int suc = -1;
+	    current = -((100 + i) % 26);
+        suc = scanf("%d", &current);
         
-        fseek(stdin, 1, SEEK_CUR);
+        if (suc == 0) {
+            fprintf(stderr, "ERROR: Non-numerical entry");
+            exit(1);
+        }	
+
+        if (current == 1) {
+            return i;
+        }
     }
 
     return -1;
@@ -75,7 +78,6 @@ int main() {
     int column_num = -1;
     int wait_status = TARGET_NOT_FOUND;
     int counter = 0;
-    bool target_found = false;
 
     process_row = create_child_processes();
 
@@ -85,26 +87,35 @@ int main() {
         // wait until a process exits with EXIT_SUCCESS
         do {
             pid = wait(&wait_status);
-            counter++;
-        } while (WEXITSTATUS(wait_status) == TARGET_NOT_FOUND && counter < NUM_ROWS);     // TODO HANDLE NO TARGET IN INPUT
+	        
+            // find the target in column
+            row_num = WEXITSTATUS(wait_status);
+            column_num = search_row(row_num);
 
-        if (counter == NUM_ROWS && WEXITSTATUS(wait_status) == TARGET_NOT_FOUND) {
+            counter++;
+        
+        } while (WEXITSTATUS(wait_status) == TARGET_NOT_FOUND && counter < NUM_ROWS + 1);
+
+        // Catch input errors
+        if (WEXITSTATUS(wait_status) == TARGET_NOT_FOUND) {
             fprintf(stderr, "ERROR: No target in file");
-            return 1;
+            exit(1);
         }
 
-        // find the target in column
-        row_num = wait_status;
-        column_num = search_row(row_num);
-        
+        if (column_num == -1) {
+            fprintf(stderr, "READ ERROR - Please try again");
+            exit(1);
+        }
+
+        // report
         printf("Parent: The treasure was found by child with PID %d at row %d and column %d", pid, row_num, column_num);
     }
     
     // process is a child
     else {
-        target_found = search_row(process_row);
-
-        if (target_found == -1)  exit(TARGET_NOT_FOUND);
+        column_num = search_row(process_row);
+	
+        if (column_num == -1)  exit(TARGET_NOT_FOUND);
         else  exit(process_row);  // return row number if success
     }
 
