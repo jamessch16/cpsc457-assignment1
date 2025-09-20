@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
     // calculate partition sizes
     if (numbers_to_search < N_CHILDREN) {  // there are more child processes than numbers to search
         partition_size = 1;
-        remainder_size = N_CHILDREN - numbers_to_search;  // here remainder size is excess processes
+        remainder_size = 0;  // here remainder size is excess processes
     }
     else if (numbers_to_search % N_CHILDREN == 0) {   // partitions divide search space evenly
         partition_size = numbers_to_search / N_CHILDREN;
@@ -123,7 +123,7 @@ int main(int argc, char *argv[]) {
     int *num_ptr = (int *) SHM_PTR;
 
     // create child processes. loop exits early if process is a child
-    while (counter < N_CHILDREN && pid != 0) {
+    while (counter < N_CHILDREN && counter < numbers_to_search && pid != 0) {
 
         pid = fork();
 
@@ -132,14 +132,17 @@ int main(int argc, char *argv[]) {
             printf("Child PID %d checking range [%d, %d]\n", pid, lower_bound, upper_bound);
 
             // adjust search bounds for next child and its starting point in memory
-            lower_bound += partition_size;
-            num_ptr += partition_size;
-
-            if ((counter < N_CHILDREN - 1) || remainder_size == 0)      upper_bound += partition_size;
-            else if (counter == N_CHILDREN - 1 && remainder_size > 0)   upper_bound = GLOBAL_UPPER_BOUND;
-            else {
-                fprintf(stderr, "ERROR: Should never happen, exceed bounds of child process creation");
-                exit(1);
+            if ((counter < N_CHILDREN - 2) || remainder_size == 0)  {
+                printf("counter%d\n", counter);  
+                upper_bound += partition_size;
+                lower_bound += partition_size;
+                num_ptr += partition_size; 
+            }
+            else if (counter == N_CHILDREN - 2 && remainder_size > 0)  { 
+                printf("set to global\n"); 
+                upper_bound = GLOBAL_UPPER_BOUND;
+                lower_bound += partition_size;
+                num_ptr += partition_size;
             }
             
             counter++;
