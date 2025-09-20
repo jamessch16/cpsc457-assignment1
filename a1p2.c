@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <math.h>
 #include <sys/wait.h>
 #include <sys/shm.h>
 
@@ -76,9 +77,9 @@ void report_primes(int *num_ptr, int size, int n_children, int partition_size) {
 int main(int argc, char *argv[]) {
     
     // input and numerical computation
-    const int GLOBAL_LOWER_BOUND = argv[1];
-    const int GLOBAL_UPPER_BOUND = argv[2];
-    const int N_CHILDREN = argv[3];
+    const int GLOBAL_LOWER_BOUND = atoi(argv[1]);
+    const int GLOBAL_UPPER_BOUND = atoi(argv[2]);
+    const int N_CHILDREN = atoi(argv[3]);
 
     if (GLOBAL_LOWER_BOUND < 0 || GLOBAL_UPPER_BOUND < 0 || N_CHILDREN <= 0) {
         fprintf(stderr, "ERROR: invalid input. Only non-negative numbers permitted for bounds and only positive integers for number of children");
@@ -119,7 +120,7 @@ int main(int argc, char *argv[]) {
     const int MEM_SIZE = sizeof(int) * partition_size * N_CHILDREN;
     int shmid = shmget(IPC_PRIVATE, MEM_SIZE, IPC_CREAT | 0666);  // NOTE FOR FUTURE REFERENCE: IPC_PRIVATE is a flag to create a new segment. Don't use if unrelated processes need to share memory
     const int *SHM_PTR = (int *) shmat(shmid, NULL, 0);   
-    int *num_ptr = SHM_PTR;
+    int *num_ptr = (int *) SHM_PTR;
 
     // create child processes. loop exits early if process is a child
     while (counter < N_CHILDREN && pid != 0) {
@@ -164,7 +165,7 @@ int main(int argc, char *argv[]) {
 
     else {
         fprintf(stderr, "ERROR: Should never happen. Exit process creation with negative value from fork");
-        shmdt(SHM_PTR)
+        shmdt(SHM_PTR);
         exit(1);
     }
 
